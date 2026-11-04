@@ -66,6 +66,26 @@ def test_missing_modality_cannot_change_prediction():
     assert torch.allclose(before, model(data), atol=1e-6)
 
 
+def test_missing_nan_modality_is_ignored_before_encoding():
+    data = generate(40)
+    data.available[:, 1:] = False
+    model = FusionSurvival().eval()
+    before = model(data).detach()
+    data.image[:] = float("nan")
+    data.sequence[:] = float("nan")
+    assert torch.allclose(before, model(data))
+    model.train()
+    model(data).sum().backward()
+    assert all(p.grad is None or torch.isfinite(p.grad).all() for p in model.parameters())
+
+
+def test_observed_nan_is_rejected():
+    data = generate(30)
+    data.tabular[0, 0] = float("nan")
+    with pytest.raises(ValueError, match="finite"):
+        FusionSurvival().eval()(data)
+
+
 @pytest.mark.parametrize("mode", ["tabular", "image", "sequence", "fusion"])
 def test_all_missing_is_finite(mode):
     data = generate(30)
