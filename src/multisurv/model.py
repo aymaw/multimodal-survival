@@ -26,14 +26,6 @@ class FusionSurvival(nn.Module):
         self.head = nn.Sequential(nn.Linear(width + 3, width), nn.ReLU(), nn.Linear(width, BINS))
 
     def forward(self, cohort):
-        embeddings = torch.stack(
-            (
-                self.tabular(cohort.tabular),
-                self.image(cohort.image),
-                self.sequence(cohort.sequence)[1][-1],
-            ),
-            dim=1,
-        )
         available = cohort.available.clone()
         if self.mode != "fusion":
             keep = ("tabular", "image", "sequence").index(self.mode)
@@ -42,6 +34,17 @@ class FusionSurvival(nn.Module):
             dropped = torch.rand_like(available.float()) > 0.15
             dropped[:, 0] = True
             available &= dropped
+        # Mask BEFORE encoding: multiplying a missing NaN embedding by zero is still NaN.
+        inputs = [
+            torch.where(available[:, i].reshape(-1, *([1] * (x.ndim - 1))), x, 0.0)
+            for i, x in enumerate((cohort.tabular, cohort.image, cohort.sequence))
+        ]
+        if any(not torch.isfinite(x).all() for x in inputs):
+            raise ValueError("Observed modality inputs must be finite")
+        embeddings = torch.stack(
+            (self.tabular(inputs[0]), self.image(inputs[1]), self.sequence(inputs[2])[1][-1]),
+            dim=1,
+        )
         # All-missing ablation rows receive zero embeddings and explicit absent flags.
         scores = self.gate(embeddings).squeeze(-1).masked_fill(~available, -1e4)
         weights = scores.softmax(1) * available
