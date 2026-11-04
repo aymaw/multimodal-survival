@@ -15,8 +15,10 @@ employer software, or a deployed product. See [provenance](PROVENANCE.md).
 
 An independent PyTorch implementation motivated by multimodal survival research.
 A tabular MLP, small CNN, and GRU produce modality embeddings; an availability-aware
-gate fuses them into 12 discrete hazard logits. Modality dropout improves robustness
-to missing inputs. Single-modality models are retrained as ablations.
+gate fuses them into 12 discrete hazard logits. Training includes modality dropout;
+its incremental benefit has not been isolated in an ablation. Single-modality
+models are retrained as ablations. Missing inputs are masked before encoding,
+including NaNs; non-finite values in observed inputs are rejected.
 
 ```mermaid
 flowchart LR
