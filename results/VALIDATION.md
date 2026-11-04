@@ -1,7 +1,7 @@
 # Review validation
 
-Reviewed on November 4, 2026. The local suite now totals 56 tests across the four
-repositories. Regression coverage includes missing NaNs, adapter reload without
+Reviewed on November 4, 2026. This repository has 13 local tests; the four-repository suite
+now totals 57 tests. Regression coverage includes missing NaNs, adapter reload without
 labels, template-cluster uncertainty, semantic confidence/slot guards, unlabelled
 clinical inference, event-loop responsiveness, overload/cancellation, and model
 failure recovery. Exact test counts per repository appear in the CI run.
